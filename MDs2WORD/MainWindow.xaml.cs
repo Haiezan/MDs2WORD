@@ -34,13 +34,16 @@ namespace MDs2WORD
             List < Chapter > chapters = new List<Chapter>();
             chapters.Add(new Chapter(@"F:\08Github\Desktop\SAUSG_FAQ\5.分析问题"));
 
-            var files = Directory.GetFiles(chapters[0].path, "*.md");
+            DirectoryInfo di = new DirectoryInfo(chapters[0].path);
 
-            Array.Sort(files, new FileNameSort());
+            FileInfo[] files = di.GetFiles("*.md");
+
+            SortAsFileName(ref files);
+
 
             foreach (var file in files)
             {
-                chapters[0].Sections.Add(new Section(file));
+                chapters[0].Sections.Add(new Section(file.Name));
             }
 
             string str = null;
@@ -52,6 +55,73 @@ namespace MDs2WORD
 
             Run(chapters[0].path, $"pandoc {str} -o {chapters[0].name}.docx");
         }
+
+        ///<summary>
+        ///文件重新排序
+        ///</summary>
+        private void SortAsFileName(ref FileInfo[] arrFi)
+        {
+            Array.Sort(arrFi, delegate (FileInfo x, FileInfo y) { return CompareTo(x.Name,y.Name); });
+        }
+        ///<summary>
+        ///字符串前后次序比较
+        ///</summary>
+        public int CompareTo(string fileA, string fileB)
+        {
+            char[] arr1 = fileA.ToCharArray();
+            char[] arr2 = fileB.ToCharArray();
+            int i = 0, j = 0;
+            while (i < arr1.Length && j < arr2.Length)
+            {
+                if (char.IsDigit(arr1[i]) && char.IsDigit(arr2[j]))
+                {
+                    string s1 = "", s2 = "";
+                    while (i < arr1.Length && char.IsDigit(arr1[i]))
+                    {
+                        s1 += arr1[i];
+                        i++;
+                    }
+                    while (j < arr2.Length && char.IsDigit(arr2[j]))
+                    {
+                        s2 += arr2[j];
+                        j++;
+                    }
+                    if (int.Parse(s1) > int.Parse(s2))
+                    {
+                        return 1;
+                    }
+                    if (int.Parse(s1) < int.Parse(s2))
+                    {
+                        return -1;
+                    }
+                }
+                else
+                {
+                    if (arr1[i] > arr2[j])
+                    {
+                        return 1;
+                    }
+                    if (arr1[i] < arr2[j])
+                    {
+                        return -1;
+                    }
+                    i++;
+                    j++;
+                }
+            }
+            if (arr1.Length == arr2.Length)
+            {
+                return 0;
+            }
+            else
+            {
+                return arr1.Length > arr2.Length ? 1 : -1;
+            }
+        }
+
+        ///<summary>
+        ///运行pandoc命令行
+        ///</summary>
         public static bool Run(string path, string args)
         {
             Process proc = new Process();
@@ -69,32 +139,7 @@ namespace MDs2WORD
             proc.Close();
             return true;
         }
-
-        public class FileNameSort : IComparer
-        {
-            //调用DLL
-            [System.Runtime.InteropServices.DllImport("Shlwapi.dll", CharSet = CharSet.Unicode)]
-            private static extern int StrCmpLogicalW(string param1, string param2);
-
-
-            //前后文件名进行比较。
-            public int Compare(object name1, object name2)
-            {
-                if (null == name1 && null == name2)
-                {
-                    return 0;
-                }
-                if (null == name1)
-                {
-                    return -1;
-                }
-                if (null == name2)
-                {
-                    return 1;
-                }
-                return StrCmpLogicalW(name1.ToString(), name2.ToString());
-            }
-        }
+        
 
         class Chapter
         {
