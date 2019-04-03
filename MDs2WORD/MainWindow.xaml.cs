@@ -31,29 +31,51 @@ namespace MDs2WORD
 
         private void Button_MDs2Word(object sender, RoutedEventArgs e)
         {
-            List < Chapter > chapters = new List<Chapter>();
-            chapters.Add(new Chapter(@"F:\08Github\Desktop\SAUSG_FAQ\5.分析问题"));
+            string sPath = @"F:\08Github\Desktop\SAUSG_FAQ";
+            string sName = "SAUSG常见问题解答";
 
-            DirectoryInfo di = new DirectoryInfo(chapters[0].path);
+            DirectoryInfo dir = new DirectoryInfo(sPath);
+            DirectoryInfo[] directies = dir.GetDirectories();
+            SortAsFileName(ref directies);
 
-            FileInfo[] files = di.GetFiles("*.md");
-
-            SortAsFileName(ref files);
-
-
-            foreach (var file in files)
+            List<Chapter> chapters = new List<Chapter>();
+            foreach (var directy in directies)
             {
-                chapters[0].Sections.Add(new Section(file.Name));
+                chapters.Add(new Chapter(directy.FullName));
+
+                int i = chapters.Count();
+
+                DirectoryInfo di = new DirectoryInfo(chapters[i - 1].path);
+
+                FileInfo[] files = di.GetFiles("*.md");
+
+                SortAsFileName(ref files);
+
+
+                foreach (var file in files)
+                {
+                    chapters[i - 1].Sections.Add(new Section(file.FullName));
+                }
+
+
             }
 
-            string str = null;
-            foreach (var sec in chapters[0].Sections)
+            //输出结果
+            string str2 = null;
+            foreach (var chapt in chapters)
             {
-                str += sec.name;
-                str += " ";
+                string str = null;
+                foreach (var sec in chapt.Sections)
+                {
+                    str += sec.path;
+                    str += " ";
+                }
+                Run(chapt.path, $"pandoc {str} -o {sPath}\\{chapt.name}.docx");
+                str2 += $"{chapt.name}.docx ";
             }
+            //合并word
+            Run(sPath, $"pandoc {str2} -o {sName}.docx");
 
-            Run(chapters[0].path, $"pandoc {str} -o {chapters[0].name}.docx");
         }
 
         ///<summary>
@@ -62,6 +84,10 @@ namespace MDs2WORD
         private void SortAsFileName(ref FileInfo[] arrFi)
         {
             Array.Sort(arrFi, delegate (FileInfo x, FileInfo y) { return CompareTo(x.Name,y.Name); });
+        }
+        private void SortAsFileName(ref DirectoryInfo[] arrFi)
+        {
+            Array.Sort(arrFi, delegate (DirectoryInfo x, DirectoryInfo y) { return CompareTo(x.Name, y.Name); });
         }
         ///<summary>
         ///字符串前后次序比较
@@ -133,6 +159,7 @@ namespace MDs2WORD
             proc.StartInfo.RedirectStandardOutput = true;//标准输出重定向  
             proc.Start();
             proc.StandardInput.WriteLine(args);
+            proc.StandardInput.WriteLine("pause");
             //proc.StandardInput.WriteLine("exit");  
             //string sExecResult = proc.StandardOutput.ReadToEnd();//返回脚本执行的结果  
             //proc.WaitForExit();
